@@ -83,6 +83,19 @@
     <string name="app_order_custom">מותאם אישית (הסידור שלכם)</string>
     <string name="app_order_az">לפי האלף-בית</string>
     <string name="app_order_newest">החדשות ביותר קודם</string>
+    <string name="weather_now">%1$d°  %2$s</string>
+    <string-array name="weather_kinds">
+        <item>בהיר</item>
+        <item>בהיר ברובו</item>
+        <item>מעונן חלקית</item>
+        <item>מעונן</item>
+        <item>ערפל</item>
+        <item>טפטוף</item>
+        <item>גשם</item>
+        <item>שלג</item>
+        <item>ממטרים</item>
+        <item>סופת רעמים</item>
+    </string-array>
     <string name="app_library">ספריית אפליקציות</string>
     <string name="library_empty">לא נמצאו אפליקציות שניתן לפתוח</string>
     <string name="library_on_home">במסך הבית</string>

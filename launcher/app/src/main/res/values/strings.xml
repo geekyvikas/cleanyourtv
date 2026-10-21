@@ -91,6 +91,19 @@
     <string name="app_order_custom">Custom (your arrangement)</string>
     <string name="app_order_az">Alphabetical (A to Z)</string>
     <string name="app_order_newest">Newest installed first</string>
+    <string name="weather_now">%1$d°  %2$s</string>
+    <string-array name="weather_kinds">
+        <item>Clear</item>
+        <item>Mostly clear</item>
+        <item>Partly cloudy</item>
+        <item>Cloudy</item>
+        <item>Fog</item>
+        <item>Drizzle</item>
+        <item>Rain</item>
+        <item>Snow</item>
+        <item>Showers</item>
+        <item>Thunderstorm</item>
+    </string-array>
     <string name="app_library">App library</string>
     <string name="library_empty">No launchable apps found</string>
     <string name="library_on_home">On Home</string>

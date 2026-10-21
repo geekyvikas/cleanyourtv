@@ -150,6 +150,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** The pills have been filled in once; later resumes refresh them after the first frame. */
     private boolean pillsShown;
     private TextView shamsiDate;
+    /** show_weather: the request for the configured coordinates, or null when weather is off. */
+    private String weatherUrl;
+    private TextView weatherView;
+    private java.util.concurrent.ExecutorService weatherThread;
+    private Weather.Now weatherNow;
+    private long weatherAt, weatherTriedAt;
+    private boolean weatherFetching;
     private TextView stats;
     private List<RaceWeekend.Race> raceCalendar;
     private View racePanel;
@@ -236,6 +243,12 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         @Override
         public void onAvailable(@NonNull Network network) {
             handler.post(MainActivity.this::updateWifiLabel);
+            // At boot Home comes up before Wi-Fi, so the first weather request fails: ask again once connected.
+            handler.post(() -> {
+                if (weatherNow != null || !started) return;
+                weatherTriedAt = 0;
+                updateWeather();
+            });
         }
 
         @Override
@@ -292,6 +305,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             updateGreeting();
             updateRace();
             updateWifiLabel();
+            updateWeather();
             sky.update();
             wallpaperPlayer.update();
             handler.postDelayed(this, MINUTE_MS);
@@ -356,6 +370,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         greetingColor = greeting.getCurrentTextColor();
         btnWifi = findViewById(R.id.btnWifi);
         shamsiDate = findViewById(R.id.shamsiDate);
+        weatherView = findViewById(R.id.weather);
+        if (getResources().getBoolean(R.bool.show_weather)) {
+            weatherUrl = Weather.url(getString(R.string.latitude), getString(R.string.longitude));
+        }
         stats = findViewById(R.id.stats);
         raceCalendar = cfg.raceCalendar;
         racePanel = findViewById(R.id.racePanel);
@@ -658,6 +676,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         rebuildOnResume = false;
         updateGreeting();
         updateRace();
+        updateWeather();
         // The network and Inputs pills keep their state while Home is in the background, and callbacks update them
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
@@ -848,6 +867,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onDestroy() {
         super.onDestroy();
         wallpaperPlayer.close();
+        if (weatherThread != null) weatherThread.shutdownNow();
         ConnectivityManager cm = getSystemService(ConnectivityManager.class);
         TvInputManager tim = (TvInputManager) getSystemService(TV_INPUT_SERVICE);
         if (tim != null) tim.unregisterCallback(inputCallback);
@@ -2031,6 +2051,47 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             greeting.setTextColor(greetingColor);
         }
         if (shamsi) shamsiDate.setText(Shamsi.today());
+    }
+
+    // ---- weather above the date (show_weather) -----------------------------------------------------------------
+
+    /**
+     * Shows the last reading, and asks for a new one when it is due: at most every Weather.REFRESH_MS, sooner after a
+     * failure. Runs on resume and with the minute tick, so nothing is fetched while another app is on screen.
+     */
+    private void updateWeather() {
+        if (weatherUrl == null) return;
+        long now = System.currentTimeMillis();
+        boolean fresh = weatherNow != null && now - weatherAt < Weather.STALE_MS;
+        String[] kinds = getResources().getStringArray(R.array.weather_kinds);
+        if (fresh && weatherNow.kind < kinds.length) {
+            weatherView.setText(getString(R.string.weather_now, weatherNow.tempC, kinds[weatherNow.kind]));
+            weatherView.setVisibility(View.VISIBLE);
+        } else {
+            weatherView.setVisibility(View.GONE);
+        }
+        boolean due = weatherNow == null || now - weatherAt >= Weather.REFRESH_MS;
+        if (!due || weatherFetching || now - weatherTriedAt < Weather.RETRY_MS) return;
+        weatherFetching = true;
+        weatherTriedAt = now;
+        if (weatherThread == null) weatherThread = java.util.concurrent.Executors.newSingleThreadExecutor();
+        String url = weatherUrl;
+        weatherThread.execute(() -> {
+            Weather.Now reading;
+            try {
+                reading = Weather.fetch(url);
+            } catch (Exception e) {
+                reading = null;
+            }
+            Weather.Now result = reading;
+            runOnUiThread(() -> {
+                weatherFetching = false;
+                if (result == null || isDestroyed()) return;
+                weatherNow = result;
+                weatherAt = System.currentTimeMillis();
+                updateWeather();
+            });
+        });
     }
 
     // ---- race-weekend panel (a theme's race_calendar) -----------------------------------------------

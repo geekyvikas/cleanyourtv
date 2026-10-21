@@ -180,6 +180,11 @@
          Vilnius: 54.69 and 25.28. -->
     <string name="latitude" translatable="false"></string>
     <string name="longitude" translatable="false"></string>
+    <!-- Current weather above the date (temperature in Celsius and the sky, e.g. "24°  Clear"), for the latitude and
+         longitude above. Asks Open-Meteo (open-meteo.com: free, no account) at most every 30 minutes and only
+         while Home is on screen; the request carries the coordinates and nothing else. Hidden when it has no
+         reading, or none newer than 3 hours. false (the default): no weather, and the launcher never goes online. -->
+    <bool name="show_weather">false</bool>
 
     <!-- Cinematic top shelf: the focused dock app's artwork, softened, fills the top of the screen in its
          colour; the shelf gets a larger name, a "Last opened" line (from the apps Home opened) and dock position
